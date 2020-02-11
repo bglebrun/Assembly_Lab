@@ -4,7 +4,7 @@ prtst:  .asciz  "Enter text (ctrl-D to end): "
 ans:    .asciz  "This checksum is wrong because we're performing check-ception on global vars"
 rptst:  .asciz  "%s\n"
         .align  2
-
+@ maybe want to read this: https://azeria-labs.com/memory-instructions-load-and-store-part-4/
 buffer: .space  4096
 i:      .word   0
 sum:    .word   0
