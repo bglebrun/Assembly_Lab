@@ -3,11 +3,11 @@ chksm:  .asciz  "\nThe checksum is %08X\n"
 	.align	2
 prtst:  .asciz  "Enter text (ctrl-D to end): "
 	.align	2
-ans:    .asciz  "This checksum is wrong because we're performing check-ception on global vars"
+ans:    .asciz  "second checksum is wrong because we're performing check-ception on global vars\n"
 	.align 	2
 rptst:  .asciz  "%s\n"
         .align  2
-@ maybe want to read this: https://azeria-labs.com/memory-instructions-load-and-store-part-4/
+
 buffer: .space  4096
 i:      .word   0
 sum:    .word   0
@@ -29,10 +29,10 @@ main:
 loop:
         @ buffer[i]=getchar();
         bl      getchar		@ call getchar
-        ldr     r1,=i		@ load address of i into r1
-        ldr     r1,[r1]		@ load value of r1 into i
+        ldr     ip,=i		@ load address of i into r1
+        ldr     ip,[ip]		@ load value of r1 into i
         ldr     r2,=buffer	@ load address of buffer into r2
-        str     r0,[r2,r1]	@ store contents of r0 into buffer+i
+        str     r0,[r2,ip]	@ store contents of r0 into buffer+i
 
         @ while(buffer[i]!=-1)
         cmp     r0,#-1		@ compare contents of r0 to ctrl+D command
@@ -62,13 +62,18 @@ endloop:
         ldr     r0,=buffer
         bl      checksum
         ldr     r1,=sum
+        ldr     r1,[r1]
         ldr     r0,=chksm
         bl      printf
 	@ printf("\nThe checksum is %08X\n",checksum(buffer));
         ldr     r0,=buffer
         bl      checksum
         ldr     r1,=sum
+        ldr     r1,[r1]
         ldr     r0,=chksm
+        bl      printf
+
+        ldr     r0,=ans
         bl      printf
 
 	@ return 0;
@@ -87,6 +92,7 @@ chkloop:
         @ buffer[i] != 0	# buffer address should be in r0
         ldr     r2,=i		@ load i address to r2
         ldr     r2,[r2]		@ r2 = &r2
+
         add     r5,r0,r2        @ get address for buff[r2]
         ldrb    r1,[r5]   	@ r1 = buff[r2]
         cmp     r1,#0		@ r1 == 0
@@ -104,6 +110,8 @@ chkloop:
 loopend:
 
 	@ return
-	bx lr
+        ldr     r0,=sum
+        ldr     r0,[r0]
+	bx      lr
 
 	.end
