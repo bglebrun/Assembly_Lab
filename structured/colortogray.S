@@ -66,7 +66,7 @@ col:
 
 	@ otherwise get colors and convert
 	ldr		r0,[sp,#16]			@ for every row being referenced by **color+0; color doesn't need to be referenced again
-	ldr		ip,[sp,#4]				@ load row index
+	ldr		ip,[sp,#4]			@ load row index
 	ldr		r0,[r0,ip]			@ load pointer to *color
 	ldr		ip,[sp]				@ load col index
 	ldr		r0,[r0,ip]			@ load color array
