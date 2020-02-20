@@ -19,7 +19,8 @@ color_to_gray:
 	@ int col(0),row(4)=0
 	@ int max_col(8),max_row(12)=0
 	@ *rgbimage(16) color
-	sub		sp,sp,#20			@ clearing 5 words of data on the stack
+	@ *grayimage(20) bw
+	sub		sp,sp,#24			@ clearing 5 words of data on the stack
 	mov		r1,#0				@ load 0 into r1
 	str		r1,[sp]				@ store 0 to col(0)
 	str		r1,[sp,#4]			@ store 0 to row(4)
@@ -30,74 +31,86 @@ color_to_gray:
 	@ allocate gray-image
 	bl		allocate_grayimage	@ branch to allocate greyimage
 	@ r0 should now have greyimage
+	@ move r0 address to grayimage(20)
+	str		r0,[sp,#20]			@ grayimage(20) = r0
 
 	@ Write width/height from color to bw
 	ldr		r1,[sp,#16]			@ get color(16)
-	ldr		r1,[r1,#4]			@ get width/row from color(16)
-	ldr		r1,[r1]				@ dereference width/row from color(16)
-	str 	r1,[r0,#4]			@ store grey width/row to bw
-
-	str		r1,[sp,#12]			@ store max_row on the stack
 	
-	ldr		r1,[sp,#16]			@ get color(16)
-	ldr		r1,[r1,#8]			@ get color height/column
-	ldr		r1,[r1]				@ dereferencer height/column from color
-	str		r1,[r0,#8]			@ store grey height/column to bw
-
-	str		r1,[sp,#8]			@ store max_col on the stack
+	ldr		r2,[r1,#4]			@ get width/row from color(16)
+	str 	r2,[r0,#4]			@ store grey width/row to bw
+	str		r2,[sp,#12]			@ store max_row on the stack
+	
+	ldr		r2,[r1,#8]			@ get color height/column
+	str		r2,[r0,#8]			@ store grey height/column to bw
+	str		r2,[sp,#8]			@ store max_col on the stack
 	@ *r0+4 and *r0+8 should have width/height information
 
 	@ get column pointer
-col:
-	@ r0, grayscale
+row:
 	@ int col(0),row(4)=0
 	@ int max_col(8),max_row(12)=0
 	@ *rgbimage(16) color
+	@ *grayimage(20) bw
 
-	@ reset row pointer
+	@ reset col pointer
 	mov 	r1,#0
-	str		r1,[sp,#4]			@ row(sp+4) = r1
+	str		r1,[sp]				@ col(0) = r1
 
-	@ check if we're on last column
-	ldr		r1,[sp]				@ load col(sp)
-	ldr		r2,[sp,#8]			@ load max_col(8)
-
-	@ run a comparison
-	cmp		r1,r2
-	beq		noloop
-	@ else dereference row pointer
-	@ get row pointer
-row:
-	@ check if we're on last row
-	@ stack pointer
-	ldr		r2,[sp,#4]			@ r2 = row(4)
-	ldr		r1,[sp,#12]			@ r1 = max_row(12)
+col:
+	@ check if we're on last col
+	ldr		r2,[sp]				@ r2 = col(0)
+	ldr		r1,[sp,#8]			@ r1 = max_col(8)
 	cmp 	r1,r2				@ r2 == r1
-	beq 	col					@ if == then break to col
+	beq 	end_col				@ if == then break to end_col
 
 	@ otherwise get colors and convert
+	ldr		r0,[sp,#16]			@ for every row being referenced by **color+0; color doesn't need to be referenced again
+	ldr		ip,[sp,#4]				@ load row index
+	ldr		r0,[r0,ip]			@ load pointer to *color
+	ldr		ip,[sp]				@ load col index
+	ldr		r0,[r0,ip]			@ load color array
+	@ load colors
+	ldrb	r2,[r0,#12]			@ load b to r2
+	ldrb	r1,[r0,#8]			@ laod g to r1
+	ldrb	r0,[r0,#4]			@ load r to r0
+	bl		convert_color_bw	@ with loaded colors, convert to bw
+	@ our grayscale value should be sitting in r0 now
+
+	@ load grayscale
+	ldr		r1,[sp,#20]			@ load grayscale
+	ldr		ip,[sp,#4]			@ load row index
+	ldr		r1,[r1,ip]			@ load pointer to *color
+	ldr		ip,[sp]				@ load col index
+	ldr		r1,[r1,ip]			@ load pointer to greypixel
+	ldr		r1,[r1]				@ we need to go deeper
+	str		r0,[r1]				@ store gray value to *graypixel
 
 	@ increment row pointer index
 	@ stack pointer
-	ldr		r1,[sp,#4]
-	add		r1,r1,#1
-	str		r1,[sp,#4]
-	b 		row
+	ldr		r1,[sp]				@ load col(0)
+	add		r1,r1,#1			@ col(0)++
+	str		r1,[sp]				@ =col(0)
+	b 		col					@ break to col
 
-@ end row
+end_col:
 
-	@ increment column pointer index
-	@ stack pointer
-	ldr		r1,[sp]
-	add 	r1,r1,#1
-	str		r1,[sp]
-	b 		col
+	@ check if we're on last row
+	ldr		r1,[sp,#4]			@ load row(4)
+	ldr		r2,[sp,#12]			@ load max_row(12)
+	@ run a comparison
+	cmp		r1,r2				@ row == max_row
+	beq		end_row				@ if == then break to end_row
 
-@ end col
+	@ increment row pointer index and return to col
+	ldr		r1,[sp,#4]			@ load row(4) ptr
+	add 	r1,r1,#1			@ ptr++
+	str		r1,[sp,#4]			@ store ptr
+	b 		row					@ return to row
 
-noloop:
-	@ make sure greyscale is in r0!
-	add		sp,sp,#20			@ deallocate memory
+end_row:
+	ldr		r0,[sp,#20]			@ make sure greyscale is in r0 before we exit
+	add		sp,sp,#24			@ deallocate memory
 	ldmfd	sp!,{r5,lr}			@ pop lr and r5 from stack
 	mov		pc,lr				@ return
 
