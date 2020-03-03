@@ -11,7 +11,7 @@
 
 	.global	color_to_gray
 color_to_gray:
-	stmfd	sp!,{r5,lr}			@ push lr and r5 to stack; will use r5
+	stmfd	sp!,{r4,r5,lr}			@ push lr and r5 to stack; will use r5
 	/* Fill in the code to allocate a new grayimage, then convert
 	   each pixel from the given rgbimage from color to grayscale,
 	   and store it in the grayimage. */
@@ -28,23 +28,22 @@ color_to_gray:
 	str		r1,[sp,#12]			@ store 0 to max_row(12)
 	str		r0,[sp,#16]			@ store address of color(16)
 
+	@ Write width/height from color to r0 and r1 for allocate_grayimage
+	ldr		r2,[sp,#16]			@ get color(16)
+	
+	ldr		r0,[r2,#4]			@ get width/col from color(16)
+	str		r0,[sp,#8]			@ store max_col on the stack
+	
+	ldr		r1,[r2,#8]			@ get color height/row
+	str		r1,[sp,#12]			@ store max_row on the stack
+	@ *r0+4 and *r0+8 should have width/height information
+
 	@ allocate gray-image
 	bl		allocate_grayimage	@ branch to allocate greyimage
 	@ r0 should now have greyimage
+	
 	@ move r0 address to grayimage(20)
 	str		r0,[sp,#20]			@ grayimage(20) = r0
-
-	@ Write width/height from color to bw
-	ldr		r1,[sp,#16]			@ get color(16)
-	
-	ldr		r2,[r1,#4]			@ get width/row from color(16)
-	str 	r2,[r0,#4]			@ store grey width/row to bw
-	str		r2,[sp,#12]			@ store max_row on the stack
-	
-	ldr		r2,[r1,#8]			@ get color height/column
-	str		r2,[r0,#8]			@ store grey height/column to bw
-	str		r2,[sp,#8]			@ store max_col on the stack
-	@ *r0+4 and *r0+8 should have width/height information
 
 	@ get column pointer
 row:
@@ -52,6 +51,14 @@ row:
 	@ int max_col(8),max_row(12)=0
 	@ *rgbimage(16) color
 	@ *grayimage(20) bw
+
+
+	@ check if we're on last row
+	ldr		r1,[sp,#4]			@ load row(4)
+	ldr		r2,[sp,#12]			@ load max_row(12)
+	@ run a comparison
+	cmp		r1,r2				@ row == max_row
+	beq		end_row				@ if == then break to end_row
 
 	@ reset col pointer
 	mov 	r1,#0
@@ -65,42 +72,36 @@ col:
 	beq 	end_col				@ if == then break to end_col
 
 	@ otherwise get colors and convert
-	ldr		r0,[sp,#16]			@ for every row being referenced by **color+0; color doesn't need to be referenced again
-	ldr		ip,[sp,#4]			@ load row index
-	ldr		r0,[r0,ip]			@ load pointer to *color
+	ldr		r4,[sp,#16]			@ Load initial color image
+	ldr		ip,[sp,#4]			@ load row index to scratch reg
+	ldr		r4,[r4,#0]			@ load color array
+	ldr		r4,[r4,ip, lsl #2]	@ load row pointer to *color
 	ldr		ip,[sp]				@ load col index
-	ldr		r0,[r0,ip]			@ load color array
-	@ load colors
-	ldrb	r2,[r0,#12]			@ load b to r2
-	ldrb	r1,[r0,#8]			@ laod g to r1
-	ldrb	r0,[r0,#4]			@ load r to r0
+	mov		r0,#3
+	mul		ip,ip,r0			@ align to 3
+	add		r4,r4,ip			@ go to column pointer
+	ldrb	r0,[r4],#1
+	ldrb	r1,[r4],#1
+	ldrb	r2,[r4],#1
 	bl		convert_color_bw	@ with loaded colors, convert to bw
 	@ our grayscale value should be sitting in r0 now
 
 	@ load grayscale
 	ldr		r1,[sp,#20]			@ load grayscale
-	ldr		ip,[sp,#4]			@ load row index
-	ldr		r1,[r1,ip]			@ load pointer to *color
+	ldr		ip,[sp,#4]			@ load row index to scratch reg
+	ldr		r1,[r1]				@ load grayscale rows
+	ldr		r1,[r1,ip, lsl #2]	@ load pointer to correct *grayscale_row
 	ldr		ip,[sp]				@ load col index
-	ldr		r1,[r1,ip]			@ load pointer to greypixel
-	ldr		r1,[r1]				@ we need to go deeper
+	add		r1,r1,ip
 	str		r0,[r1]				@ store gray value to *graypixel
 
-	@ increment row pointer index
-	@ stack pointer
+	@ increment col pointer index
 	ldr		r1,[sp]				@ load col(0)
 	add		r1,r1,#1			@ col(0)++
 	str		r1,[sp]				@ =col(0)
 	b 		col					@ break to col
 
 end_col:
-
-	@ check if we're on last row
-	ldr		r1,[sp,#4]			@ load row(4)
-	ldr		r2,[sp,#12]			@ load max_row(12)
-	@ run a comparison
-	cmp		r1,r2				@ row == max_row
-	beq		end_row				@ if == then break to end_row
 
 	@ increment row pointer index and return to col
 	ldr		r1,[sp,#4]			@ load row(4) ptr
@@ -111,7 +112,7 @@ end_col:
 end_row:
 	ldr		r0,[sp,#20]			@ make sure greyscale is in r0 before we exit
 	add		sp,sp,#24			@ deallocate memory
-	ldmfd	sp!,{r5,lr}			@ pop lr and r5 from stack
+	ldmfd	sp!,{r4,r5,lr}		@ pop lr, r4 and r5 from stack
 	mov		pc,lr				@ return
 
 @ expects r(r0) g(r1) b(r2)
