@@ -15,13 +15,13 @@ int main()
   for(i=1;i<=100;i++)
     {
       rnum=rand();
-      q.enque(rnum);
+      q.enque(i);
       if(!(i%10))
-	{
-	  cout<<"Current queue:\n";
-	  while(!q.isempty())
-	    cout << q.deque(rnum) << endl;
-	}
+      {
+        cout<<"Current queue:\n";
+        while(!q.isempty())
+          cout << q.deque(rnum) << endl;
+      }
     }
 
   

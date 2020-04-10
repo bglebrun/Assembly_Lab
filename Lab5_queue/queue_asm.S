@@ -73,8 +73,7 @@ _ZN5queue5dequeERi:
         str     r6,[r5,#208]            @ r6 has frontindex
         str     r7,[r5,#216]            @ r7 has nitems
 
-        @ return 1;
-        mov     r0,#1
+        @ return item;
         ldmfd   sp!,{r4-r8,lr}
         bx      lr
 
