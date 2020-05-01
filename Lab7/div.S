@@ -1,7 +1,7 @@
         .data
-instr:  .asciz  "Input natrual num:"
+instr:  .asciz  "Input natrual num: "
         .align  2
-outstr: .asciz  "%d is prime"
+outstr: .asciz  "%d is prime\n"
         .align  2
 input:  .asciz  "%d"
         .align  2
@@ -21,7 +21,7 @@ main:
 
         @scanf("%d\0",&m)
         ldr     r0,=input
-        ldr     r1,=n 
+        ldr     r1,=n
         bl      scanf
 
         mov     r0,#0
@@ -29,7 +29,8 @@ main:
 
 loop:
         ldr     r0,[sp]
-        ldr     r2,=n 
+        ldr     r2,=n
+        ldr     r2,[r2]
         cmp     r2,r0
         beq     end
 
@@ -37,27 +38,28 @@ loop:
         str     r0,[sp]
         bl      isprime
 
-        cmp     r0,#1
-        bleq    print_prime
-        b       loop
+        cmp     r0,#0           @ if isprime is false, go back to loop
+        beq     loop
 
-print_prime:
-        ldr     r0,=outstr
+        ldr     r0,=outstr      @ otherwise, print and loop again
         ldr     r1,[sp]
         bl      printf
-        bx      lr
+        b       loop
 
+@ return 0 (r0)
 end:
         add     sp,sp,#4
+        mov     r0,#0
+        ldmfd   sp!,{lr}
         bx      lr
 
+@ @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 @ isprime(x)
-@ returns 0 if false, 1 if true
 isprime:
-        sub     sp,sp,#8
+        push    {lr}
         mov     r1,#0
-        str     r1,[sp]         @ current iteration
-        str     r0,[sp,#4]       @ store x
+        mov     r6,#0           @ iteration in r6
+        mov     r5,r0           @ store x in r5
 
         cmp     r0,#1
         beq     ret_isprime
@@ -65,39 +67,38 @@ isprime:
         cmp     r0,#2
         beq     ret_isprime
 
-        mov     r1,#2
+        mov     r6,#2           @ start iteration=2
 
 prime_loop:
-        str     r1,[sp]         @ start iteration=2    
+        mov     r0,r5           @ load x into r0
+        mov     r1,r6           @ loat iterator into r1
         bl      divide          @ r0=q,r1=remainder
 
-        cmp     r1,#0           @ compare remainder for clean divide
-        beq     ret_notprime
+        cmp     r1,#0           @ compare remainder for no remainder
+        beq     ret_notprime  
 
-        ldr     r1,[sp]         @ load iteration and increment
-        add     r1,r1,#1
-        str     r1,[sp]
+        add     r6,r6,#1        @ increment iteration
 
-        ldr     r0,[sp,#4]       @ compare iteration=x
-        cmp     r0,r1
+        cmp     r6,r5
         beq     ret_isprime     @ if iteration==x, then prime
 
         b       prime_loop      @ o/w, keep testing
 
+@ returns 0 if false, 1 if true
 ret_notprime:
-        add     sp,sp,#8
         mov     r0,#0
+        pop     {pc}
         bx      lr
 
 ret_isprime:
-        add     sp,sp,#8
         mov     r0,#1
+        pop     {pc}
         bx      lr
 
+@ @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 @ divide(x,y)
 @ r0=x
 @ r1=y
-@ returns quotient and remainder
 divide:
         mov     r3,#0
 div_loop:
@@ -106,6 +107,7 @@ div_loop:
         cmp     r0,r1
         bpl     div_loop
 
+@ returns quotient (r0) and remainder(r1)
         mov     r1,r0           @ remainder
         mov     r0,r3           @ quotient
 
