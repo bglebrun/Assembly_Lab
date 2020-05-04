@@ -195,34 +195,6 @@ in_loop:
         bx      lr
 
 @ @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-@ multiply(x,y)
-@ return x * y
-@ r0=x
-@ r1=y
-multiply:
-        mov     r3,#0
-        cmp     r3,r0
-        moveq   r0,#0
-        bxeq    lr
-        cmp     r3,r1
-        moveq   r0,#0
-        bxeq    lr
-
-        mov     r3,#1
-        cmp     r0,r3
-        moveq   r0,r1
-        bxeq    lr
-
-mul_loop:
-        cmp     r1,r3           @ check if r1 == 1 yet
-        bxle    lr              @ if so, our result is now in r0, return
-
-        add     r0,r0,r0
-        sub     r1,r1,#1
-        b       mul_loop
-
-
-@ @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 @ divide(x,y)
 @ return x/y
 @ r0=x
