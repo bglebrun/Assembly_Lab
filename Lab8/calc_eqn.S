@@ -113,6 +113,7 @@ loop:
     mov     r0,r4           @ load i
     bl      calc_eqn        @ calculate current x
     @ result should be in r0, r1 still 16
+    mov     r1,#16
     bl      printS
 
     ldr     r0,=nwline      @ print new line for pretty shit
@@ -250,52 +251,42 @@ calc_num:
 @ expects r0(x)
 @ returns h(x)= ( (x-2)^4/11 ) + 3 -> r0
 calc_den:
-    stmfd   sp!,{lr}
-    sub     sp,sp,#8
+    stmfd   sp!,{r4,lr}
 
-    mov     r1,#4
+    mov     r1,#2
     lsl     r1,#16
 
-    sub     r0,r0,r1        @ subtract 4
+    sub     r0,r0,r1        @ subtract 2
 
-    str     r0,[sp]         @ store x-4=y for now
+    mov     r4,r0         @ store x-2=y for now
     mov     r1,r0
     bl      mul_s16         @ y ^ 2
-    ldr     r1,[sp]
+    mov     r1,r4
     bl      mul_s16         @ y ^ 3
-    ldr     r1,[sp]
+    mov     r1,r4
     bl      mul_s16         @ y ^ 4
     @ store y^4 to sp for now
-    str     r0,[sp]
+    mov     r4,r0
 
     @ prep for 64 bit division
     mov     r2,#11
     lsl     r2,#16
-    mov     r0,#0
     mov     r3,#0
-    ldr     r1,[sp]
+    mov     r0,#0
+    mov     r1,r4
     @ divide
     bl      sdiv64
     @ repair number
     lsr     r0,#16      @ shift decimal
     lsl     r1,#16      @ shift integer
     orr     r0,r0,r1    @ || together
-    mov     r2,#1
-    lsl     r2,#31      @ sign bit
-    mvn     r2,r2
-    and     r0,r0,r2
-
-    cmp     r5,#1       @ check for negative sign
-    mvneq   r0,r0
-
 
     @ add 3, then return
     mov     r1,#3
     lsl     r1,#16
     add     r0,r0,r1
 
-    add     sp,sp,#8
-    ldmfd   sp!,{lr}
+    ldmfd   sp!,{r4,lr}
     bx      lr
 
 
@@ -303,8 +294,8 @@ calc_den:
 @ returns x*y
 mul_s16:
     smull   r0,r1,r0,r1
-    lsr     r0,r0,#17
-    orr     r0,r1,lsl#15
+    lsr     r0,r0,#16
+    orr     r0,r1,lsl#16
     bx      lr
 
     .end
