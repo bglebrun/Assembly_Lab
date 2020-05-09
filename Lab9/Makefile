@@ -1,6 +1,6 @@
 
 C_OBJECTS = Lab8.c
-ASM_OBJECTS = calc_eqn.o divide.o
+ASM_OBJECTS = calc_eqn.o
 
 calc_eqn: $(C_OBJECTS) $(ASM_OBJECTS)
 	gcc -g -o calc_eqn $(C_OBJECTS) $(ASM_OBJECTS)
