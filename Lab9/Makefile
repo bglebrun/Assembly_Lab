@@ -1,16 +1,16 @@
 
-C_OBJECTS = makegray.o  netpbm.o
-ASM_OBJECTS = colortogray.o
+C_OBJECTS = Lab8.c
+ASM_OBJECTS = calc_eqn.o divide.o
 
-makegray: $(C_OBJECTS) $(ASM_OBJECTS)
-	gcc -g -o makegray $(C_OBJECTS) $(ASM_OBJECTS)
+calc_eqn: $(C_OBJECTS) $(ASM_OBJECTS)
+	gcc -g -o calc_eqn $(C_OBJECTS) $(ASM_OBJECTS)
 
 .c.o:
 	gcc -I. -g -c $<
 
 .S.o:
-	gcc -I. -g -c -mcpu=cortex-a7 -mfpu=neon-vfpv4 $< 
+	gcc -I. -g -c $< 
 
 clean:
-	rm -f *.o makegray *~ *.pgm
+	rm -f *.o calc_eqn *~ *.pgm
 
